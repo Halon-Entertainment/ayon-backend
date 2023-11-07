@@ -1,4 +1,5 @@
 import asyncio
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,7 @@ DATA: dict[str, Any] = {
     "settings": {},
     "users": [],
     "roles": [],
+    "config": {},
 }
 
 if ayonconfig.force_create_admin:
@@ -95,6 +97,14 @@ async def main(force: bool | None = None) -> None:
                 critical_error("Invalid setup file provided")
 
             DATA.update(data)
+        elif os.path.exists("/template.json"):
+            try:
+                raw_data = Path("/template.json").read_text()
+                data: dict[str, Any] = json_loads(raw_data)
+            except Exception:
+                logging.warning("Invalid setup file provided. Using defaults")
+            else:
+                logging.debug("Setting up from /template.json")
         else:
             logging.warning("No setup file provided. Using defaults")
 
@@ -116,6 +126,17 @@ async def main(force: bool | None = None) -> None:
                 ON CONFLICT (name) DO UPDATE SET value = $2
                 """,
                 name,
+                value,
+            )
+
+        for key, value in DATA.get("config", {}).items():
+            await Postgres.execute(
+                """
+                INSERT INTO config (key, value)
+                VALUES ($1, $2)
+                ON CONFLICT (key) DO UPDATE SET value = $2
+                """,
+                key,
                 value,
             )
 
