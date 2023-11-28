@@ -1,4 +1,4 @@
-from pydantic import validator
+from pydantic import field_validator
 
 from ayon_server.settings import Field
 from ayon_server.settings.common import BaseSettingsModel
@@ -61,7 +61,8 @@ class ImageIOFileRulesModel(BaseSettingsModel):
     enabled: bool = Field(False)
     rules: list[ImageIOFileRuleModel] = Field(default_factory=list, title="Rules")
 
-    @validator("rules")
+    @field_validator("rules")
+    @classmethod
     def validate_unique_outputs(cls, value):
         ensure_unique_names(value)
         return value

@@ -1,4 +1,4 @@
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 
 from ayon_server.settings.common import BaseSettingsModel
 from ayon_server.settings.validators import ensure_unique_names, normalize_name
@@ -7,7 +7,8 @@ from ayon_server.settings.validators import ensure_unique_names, normalize_name
 class BaseTemplate(BaseSettingsModel):
     name: str = Field(..., title="Name")
 
-    @validator("name")
+    @field_validator("name")
+    @classmethod
     def validate_name(cls, value):
         return normalize_name(value)
 
@@ -152,12 +153,14 @@ class Templates(BaseSettingsModel):
         title="Others",
     )
 
-    @validator("work", "publish", "hero", "delivery", "others", "staging")
+    @field_validator("work", "publish", "hero", "delivery", "others", "staging")
+    @classmethod
     def validate_template_group(cls, value):
         ensure_unique_names(value)
         return value
 
-    @validator("work", "publish", "hero")
+    @field_validator("work", "publish", "hero")
+    @classmethod
     def validate_has_default(cls, value):
         for template in value:
             if template.name == "default":

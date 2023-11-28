@@ -104,10 +104,11 @@ async def postprocess_settings_schema(  # noqa
             enum_values: list[SimpleValue] = []
             enum_labels: dict[SimpleValue, str] = {}
             is_enum = False
-            if enum := field.field_info.extra.get("enum"):
+            extra = field.json_schema_extra or {}
+            if enum := extra.get("enum"):
                 is_enum = True
 
-                if field.field_info.extra.get("_attrib_enum"):
+                if extra.get("_attrib_enum"):
                     enum_values, enum_labels = await get_attrib_enum(name)
                 else:
                     for item in enum:
@@ -123,7 +124,7 @@ async def postprocess_settings_schema(  # noqa
                             enum_values.append(item["value"])
                             enum_labels[item["value"]] = item["label"]
 
-            elif enum_resolver := field.field_info.extra.get("enum_resolver"):
+            elif enum_resolver := extra.get("enum_resolver"):
                 is_enum = True
                 try:
                     enum_values, enum_labels = await process_enum(
@@ -149,7 +150,7 @@ async def postprocess_settings_schema(  # noqa
                 if enum_labels:
                     prop["enumLabels"] = enum_labels
 
-            scope = field.field_info.extra.get("scope")
+            scope = extra.get("scope")
             if scope is None or (type(scope) != list):
                 prop["scope"] = ["project", "studio"]
             else:
@@ -166,13 +167,13 @@ async def postprocess_settings_schema(  # noqa
                 "conditional_enum",
                 "conditionalEnum",
             ):
-                if extra_field := field.field_info.extra.get(extra_field_name):
+                if extra_field := extra.get(extra_field_name):
                     if camelize(extra_field_name) not in prop:
                         prop[camelize(extra_field_name)] = extra_field
 
             # Support for VERY CUSTOM widgets, which would be otherwise
             # redered as arrays or objects.
-            if inspect.isclass(field.type_):
+            if inspect.isclass(field.annotation):
                 match field.type_.__name__:
                     case "ColorRGB_hex":
                         prop["type"] = "string"
@@ -230,7 +231,7 @@ async def postprocess_settings_schema(  # noqa
 
         submodels[parent.__name__] = parent
 
-        for _field_name, field in parent.__fields__.items():
+        for field in parent.__fields__.values():
             submodels_deque.append(field.type_)
             for sub_field in field.sub_fields or []:
                 submodels_deque.append(sub_field.type_)

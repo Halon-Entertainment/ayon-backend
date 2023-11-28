@@ -19,36 +19,36 @@ class EnrollRequestModel(OPModel):
     source_topic: str = Field(
         ...,
         title="Source topic",
-        example="ftrack.update",
-        regex=TOPIC_REGEX,
+        examples=["ftrack.update"],
+        pattern=TOPIC_REGEX,
     )
     target_topic: str = Field(
         ...,
         title="Target topic",
-        example="ftrack.sync_to_ayon",
-        regex=TOPIC_REGEX,
+        examples=["ftrack.sync_to_ayon"],
+        pattern=TOPIC_REGEX,
     )
     sender: str = Field(
         ...,
         title="Sender",
-        example="workerservice01",
+        examples=["workerservice01"],
     )
     description: str | None = Field(
         None,
         title="Description",
         description="Short, human readable description of the target event",
-        example="Sync Ftrack project to Ayon",
+        examples=["Sync Ftrack project to Ayon"],
     )
     sequential: bool = Field(
         False,
         title="Sequential",
         description="Ensure events are processed in sequential order",
-        example=True,
+        examples=[True],
     )
     filter: Filter | None = Field(
         None, title="Filter", description="Filter source events"
     )
-    max_retries: int = Field(3, title="Max retries", example=3)
+    max_retries: int = Field(3, title="Max retries", examples=[3])
     debug: bool = False
 
 

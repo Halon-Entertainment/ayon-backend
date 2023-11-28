@@ -24,24 +24,24 @@ class AttributeData(OPModel):
         ...,
         title="Type",
         description="Type of attribute value",
-        example="string",
+        examples=["string"],
     )
     title: str | None = Field(
         None,
         title="Title",
         description="Nice, human readable title of the attribute",
-        example="My attribute",
+        examples=["My attribute"],
     )
     description: str | None = Field(
         None,
         title="Field description",
-        example="Value of my attribute",
+        examples=["Value of my attribute"],
     )
     example: Any = Field(
         None,
         title="Field example",
         description="Example value of the field.",
-        example="value1",
+        examples=["value1"],
     )
     default: Any = Field(
         None,
@@ -68,17 +68,19 @@ class AttributeData(OPModel):
         None,
         title="Field regex",
         description="Only for string types. The value must match this regex.",
-        example="^[a-zA-Z0-9_]+$",
+        examples=["^[a-zA-Z0-9_]+$"],
     )
 
     enum: list[AttributeEnumItem] | None = Field(
         None,
         title="Field enum",
         description="List of enum items used for displaying select/multiselect widgets",
-        example=[
-            {"value": "value1", "label": "Value 1"},
-            {"value": "value2", "label": "Value 2"},
-            {"value": "value3", "label": "Value 3"},
+        examples=[
+            [
+                {"value": "value1", "label": "Value 1"},
+                {"value": "value2", "label": "Value 2"},
+                {"value": "value3", "label": "Value 3"},
+            ]
         ],
     )
     inherit: bool = Field(
@@ -92,8 +94,8 @@ class AttributeNameModel(OPModel):
     name: str = Field(
         ...,
         name="Attribute name",
-        regex="^[a-zA-Z0-9]{2,30}$",
-        example="my_attribute",
+        pattern="^[a-zA-Z0-9]{2,30}$",
+        examples=["my_attribute"],
     )
 
 
@@ -102,13 +104,13 @@ class AttributePutModel(OPModel):
         ...,
         title="Positon",
         description="Default order",
-        example=12,
+        examples=[12],
     )
     scope: list[ProjectLevelEntityType | TopLevelEntityType] = Field(
         default_factory=list,
         title="Scope",
         description="List of entity types the attribute is available on",
-        example=["folder", "task"],
+        examples=[["folder", "task"]],
     )
     builtin: bool = Field(
         False,

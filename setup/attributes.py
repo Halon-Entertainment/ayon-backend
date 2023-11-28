@@ -277,6 +277,8 @@ async def deploy_attributes() -> None:
             "inherit",
         ):
             if (value := tdata.get(key)) is not None:
+                if key == "regex":
+                    key = "pattern"
                 data[key] = value
 
         # Migration from 0.1.x to 0.2.x

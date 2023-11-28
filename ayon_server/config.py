@@ -51,7 +51,7 @@ class AyonConfig(BaseModel):
     redis_url: str = Field(
         default="redis://redis/",
         description="Connection string for Redis.",
-        example="redis://user:password123@redis.example.com:6379",
+        examples=["redis://user:password123@redis.example.com:6379"],
     )
 
     redis_channel: str = Field(
@@ -62,7 +62,7 @@ class AyonConfig(BaseModel):
     postgres_url: str = Field(
         default="postgres://ayon:ayon@postgres/ayon",
         description="Connection string for Postgres.",
-        example="postgres://user:password123@postgres.example.com:5432/ayon",
+        examples=["postgres://user:password123@postgres.example.com:5432/ayon"],
     )
 
     session_ttl: int = Field(
@@ -83,7 +83,7 @@ class AyonConfig(BaseModel):
     motd: str | None = Field(
         default=None,
         description="Message of the day",
-        example="Welcome to Ayon!",
+        examples=["Welcome to Ayon!"],
     )
 
     motd_path: str | None = Field(
@@ -94,13 +94,13 @@ class AyonConfig(BaseModel):
     login_page_background: str | None = Field(
         default=None,
         description="Login page background image",
-        example="https://example.com/background.jpg",
+        examples=["https://example.com/background.jpg"],
     )
 
     login_page_brand: str | None = Field(
         default=None,
         description="Login page brand image",
-        example="https://example.com/brand.png",
+        examples=["https://example.com/brand.png"],
     )
 
     geoip_db_path: str = Field(

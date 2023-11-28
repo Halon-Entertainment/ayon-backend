@@ -1,8 +1,6 @@
 import re
 
-from pydantic import BaseModel
-
-from ayon_server.utils import json_dumps, json_loads
+from pydantic import BaseModel, ConfigDict
 
 pattern = re.compile(r"(?<!^)(?=[A-Z])")
 
@@ -15,9 +13,4 @@ class BaseSettingsModel(BaseModel):
     _has_studio_overrides: bool | None = None
     _has_project_overrides: bool | None = None
     _has_site_overrides: bool | None = None
-
-    class Config:
-        underscore_attrs_are_private = True
-        allow_population_by_field_name = True
-        json_loads = json_loads
-        json_dumps = json_dumps
+    model_config = ConfigDict(populate_by_name=True)

@@ -31,8 +31,8 @@ class ListProjectsResponseModel(OPModel):
             ListProjectsItemModel(
                 name="Example project",
                 code="ex",
-                createdAt=datetime.now().isoformat(),
-                updatedAt=datetime.now().isoformat(),
+                createdAt=datetime.now(),
+                updatedAt=datetime.now(),
             )
         ],
     )
@@ -71,7 +71,7 @@ async def list_projects(
         description="""Limit the result to project with the matching name,
         or its part. % character may be used as a wildcard""",
         example="forest",
-        regex=NAME_REGEX,
+        pattern=NAME_REGEX,
     ),
 ) -> ListProjectsResponseModel:
     """

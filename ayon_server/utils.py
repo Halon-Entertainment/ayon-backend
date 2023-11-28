@@ -151,7 +151,7 @@ class EntityID:
         "example": "af10c8f0e9b111e9b8f90242ac130003",
         "min_length": 32,
         "max_length": 32,
-        "regex": r"^[0-9a-f]{32}$",
+        "pattern": r"^[0-9a-f]{32}$",
     }
 
     @classmethod

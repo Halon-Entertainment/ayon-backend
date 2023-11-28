@@ -27,13 +27,15 @@ class FolderAccess(BaseSettingsModel):
         title="Path",
         description="The path of the folder to allow access to. "
         "Required for access_type 'hierarchy and 'children'",
-        example="/assets/characters",
+        examples=["/assets/characters"],
         widget="hierarchy",
     )
 
     def __hash__(self):
         return hash(json_dumps(self.dict()))
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("path")
     def validate_path(cls, value, values):
         # Do not store path if the access_type does not support it

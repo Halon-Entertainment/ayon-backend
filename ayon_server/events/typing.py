@@ -5,7 +5,7 @@ TOPIC_FIELD = Field(
     title="Topic",
     description="Topic of the event",
     example="media.import",
-    regex=TOPIC_REGEX,
+    pattern=TOPIC_REGEX,
 )
 
 SENDER_FIELD = Field(
@@ -26,7 +26,7 @@ PROJECT_FIELD = Field(
     title="Project name",
     description="Name of the project if the event belong to one.",
     example="MyProject",
-    regex=NAME_REGEX,
+    pattern=NAME_REGEX,
 )
 
 DEPENDS_ON_FIELD = Field(

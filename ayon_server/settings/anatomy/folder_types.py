@@ -1,4 +1,4 @@
-from pydantic import Field, validator
+from pydantic import Field
 
 from ayon_server.settings.common import BaseSettingsModel
 
@@ -15,11 +15,11 @@ class FolderType(BaseSettingsModel):
     def __hash__(self):
         return hash(self.name)
 
-    @validator("original_name")
-    def validate_original_name(cls, v, values):
-        if v is None:
-            return values["name"]
-        return v
+    # @validator("original_name")
+    # def validate_original_name(cls, v, values):
+    #     if v is None:
+    #         return values["name"]
+    #     return v
 
 
 default_folder_types = [

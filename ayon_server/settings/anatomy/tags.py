@@ -9,6 +9,8 @@ class Tag(BaseSettingsModel):
     color: str = Field("#cacaca", title="Color", widget="color")
     original_name: str | None = Field(None, scope=[])  # Used for renaming
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("original_name")
     def validate_original_name(cls, v, values):
         if v is None:

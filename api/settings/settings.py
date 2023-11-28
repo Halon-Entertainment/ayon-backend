@@ -14,9 +14,11 @@ from .router import router
 
 
 class AddonSettingsItemModel(OPModel):
-    name: str = Field(..., title="Addon name", regex=NAME_REGEX, example="my-addon")
+    name: str = Field(..., title="Addon name", pattern=NAME_REGEX, example="my-addon")
     title: str = Field(..., title="Addon title", example="My Addon")
-    version: str = Field(..., title="Addon version", regex=NAME_REGEX, example="1.0.0")
+    version: str = Field(
+        ..., title="Addon version", pattern=NAME_REGEX, example="1.0.0"
+    )
 
     # None value means that project does not have overrides or project/site was not specified
     # in the request
@@ -41,7 +43,7 @@ class AddonSettingsItemModel(OPModel):
 
 
 class AllSettingsResponseModel(OPModel):
-    bundle_name: str = Field(..., regex=NAME_REGEX)
+    bundle_name: str = Field(..., pattern=NAME_REGEX)
     addons: list[AddonSettingsItemModel] = Field(default_factory=list)
 
 
@@ -53,14 +55,14 @@ async def get_all_settings(
         None,
         title="Bundle name",
         description="Production if not set",
-        regex=NAME_REGEX,
+        pattern=NAME_REGEX,
     ),
     project_name: str
     | None = Query(
         None,
         title="Project name",
         description="Studio settings if not set",
-        regex=NAME_REGEX,
+        pattern=NAME_REGEX,
     ),
     site_id: str
     | None = Query(
@@ -139,7 +141,9 @@ async def get_all_settings(
         if model:
             has_project_settings = False
             for field_name, field in model.__fields__.items():
-                scope = field.field_info.extra.get("scope", ["studio", "project"])
+                scope = (field.json_schema_extra or {}).get(
+                    "scope", ["studio", "project"]
+                )
                 if "project" in scope:
                     has_project_settings = True
                 if "site" in scope:

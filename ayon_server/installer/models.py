@@ -1,6 +1,6 @@
 from typing import Any, Literal, Optional, Union
 
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 
 from ayon_server.types import OPModel, Platform
 
@@ -18,16 +18,17 @@ class SourceModel(OPModel):
         title="Source type",
         description="If set to server, the file is stored on the server. "
         "If set to http, the file is downloaded from the specified URL.",
-        example="url",
+        examples=["url"],
     )
     url: str | None = Field(
         None,
         title="Download URL",
         description="URL to download the file from. Only used if type is url",
-        example="https://example.com/file.zip",
+        examples=["https://example.com/file.zip"],
     )
 
-    @validator("type", pre=True)
+    @field_validator("type", mode="before")
+    @classmethod
     def validate_type(cls, value: Any):
         # if type is "url", change it to "http"
         if value == "url":
@@ -62,19 +63,19 @@ class DependencyPackageManifest(BasePackageModel):
         ...,
         title="Installer version",
         description="Version of the Ayon installer this package is created with",
-        example="1.2.3",
+        examples=["1.2.3"],
     )
     source_addons: dict[str, Optional[str]] = Field(
         default_factory=dict,
         title="Source addons",
         description="mapping of addon_name:addon_version used to create the package",
-        example={"ftrack": "1.2.3", "maya": "2.4"},
+        examples=[{"ftrack": "1.2.3", "maya": "2.4"}],
     )
     python_modules: dict[str, Union[str, dict[str, str]]] = Field(
         default_factory=dict,
         title="Python modules",
         description="mapping of module_name:module_version used to create the package",
-        example={"requests": "2.25.1", "pydantic": "1.8.2"},
+        examples=[{"requests": "2.25.1", "pydantic": "1.8.2"}],
     )
 
 
@@ -83,23 +84,23 @@ class InstallerManifest(BasePackageModel):
         ...,
         title="Version",
         description="Version of the installer",
-        example="1.2.3",
+        examples=["1.2.3"],
     )
     python_version: str = Field(
         ...,
         title="Python version",
         description="Version of Python that the installer is created with",
-        example="3.11",
+        examples=["3.11"],
     )
     python_modules: dict[str, Union[str, dict[str, str]]] = Field(
         default_factory=dict,
         title="Python modules",
         description="mapping of module_name:module_version used to create the installer",
-        example={"requests": "2.25.1", "pydantic": "1.8.2"},
+        examples=[{"requests": "2.25.1", "pydantic": "1.8.2"}],
     )
     runtime_python_modules: dict[str, str] = Field(
         default_factory=dict,
         title="Runtime Python modules",
         description="mapping of module_name:module_version used to run the installer",
-        example={"requests": "2.25.1", "pydantic": "1.8.2"},
+        examples=[{"requests": "2.25.1", "pydantic": "1.8.2"}],
     )

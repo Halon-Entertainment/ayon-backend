@@ -70,7 +70,7 @@ async def get_addon_studio_settings(
     settings = await addon.get_studio_settings(variant=variant)
     if not settings:
         return {}
-    return settings
+    return settings.model_dump()
 
 
 @router.post("/{addon_name}/{addon_version}/settings", status_code=204, **route_meta)

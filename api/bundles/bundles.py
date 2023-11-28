@@ -54,7 +54,7 @@ class BundleModel(BaseBundleModel):
         title="Name",
         description="Name of the bundle",
         example="my_superior_bundle",
-        regex=NAME_REGEX,
+        pattern=NAME_REGEX,
     )
 
     created_at: datetime = Field(

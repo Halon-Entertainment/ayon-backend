@@ -11,7 +11,7 @@ class Root(BaseSettingsModel):
     name: str = Field(
         ...,
         title="Root name",
-        regex="^[a-zA-Z0-9_]{1,}$",
+        pattern="^[a-zA-Z0-9_]{1,}$",
     )
 
     windows: str = Field(

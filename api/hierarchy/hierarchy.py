@@ -27,7 +27,7 @@ class HierarchyFolderModel(OPModel):
     name: str = Field(..., example="Tree", title="Folder name")
     label: str = Field(..., example="Tree", title="Folder label")
     status: str = Field(..., example="Tree", title="Folder status")
-    folderType: str | None = Field(example="AssetBuild", title="Folder type")
+    folderType: str | None = Field(None, example="AssetBuild", title="Folder type")
     hasTasks: bool
     taskNames: list[str] = Field(example=["Modeling", "Rigging"], title="Task names")
     parents: list[str]

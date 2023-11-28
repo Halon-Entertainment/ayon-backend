@@ -243,7 +243,7 @@ class ChangePasswordRequestModel(OPModel):
         title="API Key",
         description="API Key to set to a service user",
         example="1cb4f6a89012a4b6d8a01ee4f67ae0fb",
-        regex=r"^[0-9a-f]{32}$",
+        pattern=r"^[0-9a-f]{32}$",
     )
 
 
@@ -295,6 +295,7 @@ async def check_password(
     user: CurrentUser,
     user_name: UserName,
 ) -> EmptyResponse:
+    _ = user, user_name
     validate_password(post_data.password)
     return EmptyResponse()
 
@@ -309,7 +310,7 @@ class ChangeUserNameRequestModel(OPModel):
         ...,
         description="New user name",
         example="EvenBetterUser",
-        regex=USER_NAME_REGEX,
+        pattern=USER_NAME_REGEX,
     )
 
 

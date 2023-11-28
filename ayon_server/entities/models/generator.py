@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime
 from typing import Any, List, Literal, Optional, Type, TypeVar, Union
 
-from nxtools import logging
+from nxtools import log_traceback
 from pydantic import BaseModel, Field, create_model
 
 from ayon_server.types import AttributeEnumItem, AttributeType
@@ -73,34 +73,35 @@ class FieldDefinition(BaseModel):
     """Field definition model."""
 
     # Required
-    name: str = Field(title="Name of the field")
-    required: bool = Field(title="Required field", default=False)
+    name: str = Field(None, title="Name of the field")
+    required: bool = Field(False, title="Required field")
 
     type: AttributeType = Field(default="string", title="Field data type")
-    submodel: Optional[Any]
-    list_of_submodels: Optional[Any]
+    submodel: Optional[Any] = None
+    list_of_submodels: Optional[Any] = None
     # Descriptive
-    title: Optional[str] = Field(title="Nice field title")
-    description: Optional[str] = Field(title="Field description")
-    example: Optional[Any] = Field(title="Field example")
+    title: Optional[str] = Field(None, title="Nice field title")
+    description: Optional[str] = Field(None, title="Field description")
+    example: Optional[Any] = Field(None, title="Field example")
 
     # Default value
-    default: Optional[Any] = Field(title="Field default value")
+    default: Optional[Any] = Field(None, title="Field default value")
     factory: Optional[Literal["list", "dict", "now", "uuid", "time"]] = Field(
+        None,
         title="Default factory",
         description="Name of the function to be used to create default values",
     )
 
     # Validation
-    gt: Union[int, float, None] = Field(title="Greater than")
-    ge: Union[int, float, None] = Field(title="Geater or equal")
-    lt: Union[int, float, None] = Field(title="Less")
-    le: Union[int, float, None] = Field(title="Less or equal")
-    min_length: Optional[int] = Field(title="Minimum length")
-    max_length: Optional[int] = Field(title="Maximum length")
-    min_items: Optional[int] = Field(title="Minimum items")
-    max_items: Optional[int] = Field(title="Maximum items")
-    regex: Optional[str] = Field(title="Field regex")
+    gt: Union[int, float, None] = Field(None, title="Greater than")
+    ge: Union[int, float, None] = Field(None, title="Geater or equal")
+    lt: Union[int, float, None] = Field(None, title="Less")
+    le: Union[int, float, None] = Field(None, title="Less or equal")
+    min_length: Optional[int] = Field(None, title="Minimum length")
+    max_length: Optional[int] = Field(None, title="Maximum length")
+    min_items: Optional[int] = Field(None, title="Minimum items")
+    max_items: Optional[int] = Field(None, title="Maximum items")
+    regex: Optional[str] = Field(None, title="Field regex")
     enum: Optional[list[AttributeEnumItem]] = Field(None, title="Enum values")
 
 
@@ -116,7 +117,7 @@ def generate_model(
         try:
             fdef = FieldDefinition(**fdef_data)
         except Exception:
-            logging.error(
+            log_traceback(
                 f"Unable to load attribute '{fdef_data.get('name', 'Unknown')}'"
             )
             continue
@@ -148,7 +149,10 @@ def generate_model(
             "enum",
         ):
             if getattr(fdef, k):
-                field[k] = getattr(fdef, k)
+                n = k
+                if k == "regex":
+                    n = "pattern"
+                field[n] = getattr(fdef, k)
 
         if field.get("enum"):
             field["_attrib_enum"] = True

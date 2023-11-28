@@ -1,4 +1,4 @@
-from pydantic import Field, validator
+from pydantic import ConfigDict, Field
 
 from ayon_server.entities import ProjectEntity
 from ayon_server.settings.anatomy.folder_types import FolderType, default_folder_types
@@ -9,7 +9,6 @@ from ayon_server.settings.anatomy.tags import Tag
 from ayon_server.settings.anatomy.task_types import TaskType, default_task_types
 from ayon_server.settings.anatomy.templates import Templates
 from ayon_server.settings.common import BaseSettingsModel
-from ayon_server.settings.validators import ensure_unique_names
 
 
 class ProjectAttribModel(
@@ -68,11 +67,9 @@ class Anatomy(BaseSettingsModel):
         title="Tags",
         description="Tags configuration",
     )
+    model_config = ConfigDict(title="Project anatomy")
 
-    class Config:
-        title = "Project anatomy"
-
-    @validator("roots", "folder_types", "task_types", "statuses", "tags")
-    def ensure_unique_names(cls, value, field):
-        ensure_unique_names(value, field_name=field.name)
-        return value
+    # @validator("roots", "folder_types", "task_types", "statuses", "tags")
+    # def ensure_unique_names(cls, value, field):
+    #     ensure_unique_names(value, field_name=field.name)
+    #     return value
