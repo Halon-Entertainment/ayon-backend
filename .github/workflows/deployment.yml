@@ -27,6 +27,7 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no -i key.pem $USER@$HOST << 'EOF'
             cd /var/ayon/ayon-docker/backend
+            sudo su
             if git pull; then
               echo "Git pull successful."
               cd ../
