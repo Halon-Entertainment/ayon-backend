@@ -31,7 +31,7 @@ jobs:
             if git pull; then
               echo "Git pull successful."
               cd ../
-              docker-compose restart -d
+              docker compose restart -d
             else
               echo "Git pull failed."
               exit 1
