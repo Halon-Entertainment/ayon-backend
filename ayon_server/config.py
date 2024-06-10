@@ -2,7 +2,17 @@
 
 import os
 
+from aiocache import caches
 from pydantic import BaseModel, Field
+
+caches.set_config(
+    {
+        "default": {
+            "cache": "aiocache.SimpleMemoryCache",
+            "serializer": {"class": "aiocache.serializers.StringSerializer"},
+        },
+    }
+)
 
 
 class AyonConfig(BaseModel):
@@ -164,6 +174,11 @@ class AyonConfig(BaseModel):
     log_file: str | None = Field(
         default=None,
         description="Path to the log file",
+    )
+
+    metrics_api_key: str | None = Field(
+        default=None,
+        description="API key allowing access to the system metrics endpoint",
     )
 
     email_from: str = Field("noreply@ynput.cloud", description="Email sender address")
