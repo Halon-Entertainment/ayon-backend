@@ -1,3 +1,18 @@
+"""ActivityFeedEventHook
+
+This module contains the ActivityFeedEventHook class which is responsible for
+subscribing to events and creating activities in the database based on the
+event data (such as status changes, assignee changes, etc).
+
+Basically, it translates volatile, global events into persistent, project-specific
+activities that are stored in the project schema in the database.
+
+ActivityFeedEventHook.install() is called when server is started
+(from ayon_server.api.server) and subscribes to the events that are relevant.
+"""
+
+__all__ = ["ActivityFeedEventHook"]
+
 from typing import TYPE_CHECKING, Awaitable, Callable, ClassVar, Type
 
 from ayon_server.activities.create_activity import create_activity
@@ -13,6 +28,12 @@ class ActivityFeedEventHook:
 
     @classmethod
     def install(cls, event_stream: Type["EventStream"]):
+        """Subscribe to events that are relevant for the activity feed.
+
+        This method is called once, when the server is started.
+        EventStream class then calls the appropriate handlers
+        when new events are published.
+        """
         cls.topics = {
             "entity.folder.status_changed": cls.handle_status_changed,
             "entity.task.status_changed": cls.handle_status_changed,
@@ -59,20 +80,48 @@ class ActivityFeedEventHook:
         added = set(new_value) - set(old_value)
         removed = set(old_value) - set(new_value)
 
+        all_assignees = list(set(old_value) | set(new_value))
+
+        # Get all assignees full names
+
+        if not all_assignees:
+            return  # this shouldn't happen, but let's keep mypy happy
+
+        name_tags: dict[str, str] = {
+            name: f"[{name}](user:{name})" for name in all_assignees
+        }
+        q = """
+            SELECT name, attrib->>'fullName' as full_name
+            FROM users WHERE name = ANY($1)
+            AND attrib->>'fullName' IS NOT NULL
+        """
+
+        async for row in Postgres.iterate(q, all_assignees):
+            if not row["full_name"]:
+                continue
+            name_tag = f"[{row['full_name']}](user:{row['name']})"
+            name_tags[row["name"]] = name_tag
+
+        # create activities
+
+        entity_tag = f"[{entity.name}](task:{entity.id})"
+
         for assignee in added:
+            name_tag = name_tags[assignee]
             await create_activity(
                 entity,
                 activity_type="assignee.add",
-                body=f"Added {assignee} to [{entity.name}](task:{entity.id})",
+                body=f"Added {name_tag} to {entity_tag}",
                 user_name=event.user,
                 data={"assignee": assignee},
             )
 
         for assignee in removed:
+            name_tag = name_tags[assignee]
             await create_activity(
                 entity,
                 activity_type="assignee.remove",
-                body=f"Removed {assignee} from [{entity.name}](task:{entity.id})",
+                body=f"Removed {name_tag} from {entity_tag}",
                 user_name=event.user,
                 data={"assignee": assignee},
             )

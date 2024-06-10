@@ -13,7 +13,7 @@ from ayon_server.addons.models import ServerSourceInfo, SourceInfo, SSOOption
 from ayon_server.exceptions import AyonException, BadRequestException, NotFoundException
 from ayon_server.lib.postgres import Postgres
 from ayon_server.settings import BaseSettingsModel, apply_overrides
-from ayon_server.settings.common import migrate_settings
+from ayon_server.settings.common import migrate_settings_overrides
 
 if TYPE_CHECKING:
     from ayon_server.addons.definition import ServerAddonDefinition
@@ -23,7 +23,21 @@ METADATA_KEYS = [
     "version",
     "title",
     "services",
+    # compatibility object
+    "ayon_server_version",
+    "ayon_launcher_version",
+    "ayon_required_addons",
+    "ayon_soft_required_addons",
+    "ayon_compatible_addons",
 ]
+
+
+class AddonCompatibilityModel(BaseSettingsModel):
+    server_version: str | None = None
+    launcher_version: str | None = None
+    required_addons: dict[str, str | None] | None = None
+    soft_required_addons: dict[str, str | None] | None = None
+    compatible_addons: dict[str, str | None] | None = None
 
 
 class BaseServerAddon:
@@ -41,6 +55,8 @@ class BaseServerAddon:
     app_host_name: str | None = None
     frontend_scopes: dict[str, Any] = {}
 
+    compatibility: AddonCompatibilityModel | None = None
+
     # automatically set
     definition: "ServerAddonDefinition"
     legacy: bool = False  # auto-set to true if it is the old style addon
@@ -48,6 +64,17 @@ class BaseServerAddon:
 
     def __init__(self, definition: "ServerAddonDefinition", addon_dir: str, **kwargs):
         # populate metadata from package.py
+
+        compatibility = AddonCompatibilityModel(
+            server_version=kwargs.pop("ayon_server_version", None),
+            launcher_version=kwargs.pop("ayon_launcher_version", None),
+            required_addons=kwargs.pop("ayon_required_addons", None),
+            soft_required_addons=kwargs.pop("ayon_soft_required_addons", None),
+            compatible_addons=kwargs.pop("ayon_compatible_addons", None),
+        )
+
+        self.compatibility = compatibility
+
         for key in METADATA_KEYS:
             if key in kwargs:
                 setattr(self, key, kwargs[key])
@@ -525,12 +552,11 @@ class BaseServerAddon:
         has been changed from `str` to `list[str]`, you may use:
 
         ```python
-        await def convert_str_to_list_str(value: str | list[str]) -> list[str]:
+        async def convert_str_to_list_str(value: str | list[str]) -> list[str]:
             if isinstance(value, str):
                 return [value]
             elif isinstance(value, list):
                 return value
-            return []
 
         result = migrate_settings(
             overrides,
@@ -542,11 +568,29 @@ class BaseServerAddon:
 
         ```
         """
+
         model_class = self.get_settings_model()
         if model_class is None:
             return {}
         defaults = await self.get_default_settings()
-        result = migrate_settings(
-            overrides, new_model_class=model_class, defaults=defaults.dict()
+        assert defaults is not None
+        return migrate_settings_overrides(
+            overrides,
+            new_model_class=model_class,
+            defaults=defaults.dict(),
         )
-        return result.dict(exclude_unset=True, exclude_none=True, exclude_defaults=True)
+
+    async def get_app_host_names(self) -> list[str]:
+        """Return a list of application host names that the addon uses.
+
+        Addon may reimplment this method to return a list of host names that
+        the addon uses.
+
+        By default, it returns a single host name from the
+        addon's attributes. If the addon uses multiple host names, you should
+        override this method.
+        """
+
+        if self.app_host_name is None:
+            return []
+        return [self.app_host_name]

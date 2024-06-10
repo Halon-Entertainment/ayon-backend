@@ -32,6 +32,17 @@ class ActivityOriginNode:
 
 
 @strawberry.type
+class ActivityFileNode:
+    id: str = strawberry.field()
+    size: str = strawberry.field()  # str, because int limit is 2^31-1
+    author: str | None = strawberry.field()
+    name: str | None = strawberry.field()
+    mime: str | None = strawberry.field()
+    created_at: datetime = strawberry.field()
+    updated_at: datetime = strawberry.field()
+
+
+@strawberry.type
 class ActivityNode:
     project_name: str = strawberry.field()
 
@@ -63,6 +74,17 @@ class ActivityNode:
             author = data["author"]
             loader = info.context["user_loader"]
             record = await loader.load(author)
+            if not record:
+                record = {
+                    "name": author,
+                    "attrib": {
+                        "fullName": author,
+                    },
+                    "active": False,
+                    "deleted": True,
+                    "created_at": "1970-01-01T00:00:00Z",
+                    "updated_at": "1970-01-01T00:00:00Z",
+                }
             return info.context["user_from_record"](record, info.context)
         return None
 
@@ -93,6 +115,27 @@ class ActivityNode:
             if record
             else None
         )
+
+    @strawberry.field
+    async def files(self, info: Info) -> list[ActivityFileNode]:
+        """List of files attached to the activity."""
+
+        data = json_loads(self.activity_data)
+        files = data.get("files", [])
+        result = []
+        for file in files:
+            result.append(
+                ActivityFileNode(
+                    id=file.get("id"),
+                    name=file.get("filename"),
+                    size=str(file.get("size", "0")),
+                    author=file.get("author"),
+                    mime=file.get("mime"),
+                    created_at=file["created_at"],
+                    updated_at=file["updated_at"],
+                )
+            )
+        return result
 
 
 def replace_reference_body(node: ActivityNode) -> ActivityNode:

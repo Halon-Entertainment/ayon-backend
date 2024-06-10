@@ -132,12 +132,13 @@ def list_overrides(
                         }
 
         elif isinstance(child, tuple):
-            result[path] = {
-                "path": chcrumbs,
-                "value": override[name] if name in override else list(child),
-                "level": level if name in override else "default",
-                "inGroup": in_group,
-            }
+            if name in override:
+                result[path] = {
+                    "path": chcrumbs,
+                    "value": override[name] if name in override else list(child),
+                    "level": level if name in override else "default",
+                    "inGroup": in_group,
+                }
 
         elif name in override:
             result[path] = {
@@ -150,12 +151,36 @@ def list_overrides(
     return result
 
 
+def paths_to_dict(paths: list[list[str]]) -> dict[str, Any]:
+    root: dict[str, Any] = {}
+    for path in paths:
+        current = root
+        for key in path:
+            if key not in current:
+                current[key] = {}
+            current = current[key]
+    return root
+
+
 def extract_overrides(
     default: BaseSettingsModel,
     overriden: BaseSettingsModel,
     existing: dict[str, Any] | None = None,
+    explicit_pins: list[list[str]] | None = None,
 ) -> dict[str, Any]:
     result: dict[str, Any] = {}
+
+    existing_overrides = {**existing} if existing else {}
+    new_overrides = paths_to_dict(explicit_pins or [])
+
+    # apply new overrides to forced ones
+    for path, value in new_overrides.items():
+        current = existing_overrides
+        for key in path:
+            if key not in current:
+                current[key] = {}
+            current = current[key]
+        current.update(value)
 
     def crawl(obj, ovr, ex, target):
         for name, _field in obj.__fields__.items():
@@ -168,5 +193,6 @@ def extract_overrides(
                 if getattr(ovr, name) != getattr(obj, name) or (name in ex):
                     target[name] = ovr.dict()[name]
 
-    crawl(default, overriden, existing or {}, result)
+    crawl(default, overriden, existing_overrides, result)
+
     return result

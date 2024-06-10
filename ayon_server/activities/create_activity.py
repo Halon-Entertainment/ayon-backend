@@ -1,3 +1,12 @@
+"""Create an activity.
+
+This module exports just one function: create_activity, that creates
+an activity record in the database for the given entity including
+all necessary references to other entities and users.
+"""
+
+__all__ = ["create_activity"]
+
 import datetime
 from typing import Any
 
@@ -10,6 +19,7 @@ from ayon_server.activities.utils import (
     MAX_BODY_LENGTH,
     extract_mentions,
     is_body_with_checklist,
+    process_activity_files,
 )
 from ayon_server.entities.core import ProjectLevelEntity
 from ayon_server.exceptions import BadRequestException
@@ -21,6 +31,7 @@ async def create_activity(
     entity: ProjectLevelEntity,
     activity_type: ActivityType,
     body: str,
+    files: list[str] | None = None,
     activity_id: str | None = None,
     user_name: str | None = None,
     extra_references: list[ActivityReferenceModel] | None = None,
@@ -29,10 +40,9 @@ async def create_activity(
 ) -> str:
     """Create an activity.
 
-    extra_references is an optional
-    lists of references to entities and users.
-    They are autopopulated based on the activity
-    body and the current user if not provided.
+    extra_references is an optional list of references to entities and users.
+    They are autopopulated based on the activity body and the current
+    user if not provided.
     """
 
     if timestamp is None:
@@ -67,17 +77,19 @@ async def create_activity(
 
     # Origin is always present. Activity is always created for a single entity.
 
-    references = [
+    references: set[ActivityReferenceModel] = set(extra_references or [])
+
+    references.add(
         ActivityReferenceModel(
             entity_id=entity_id,
             entity_type=entity_type,
             entity_name=None,
             reference_type="origin",
-        ),
-    ]
+        )
+    )
 
     if user_name:
-        references.append(
+        references.add(
             ActivityReferenceModel(
                 entity_type="user",
                 entity_name=user_name,
@@ -87,20 +99,8 @@ async def create_activity(
         )
         data["author"] = user_name
 
-    references.extend(await get_references_from_entity(entity))
-
-    for ref in extract_mentions(body) + (extra_references or []):
-        if ref.entity_id == entity_id and ref.entity_type == entity_type:
-            # do not self-reference
-            continue
-
-        if ref.reference_type == "relation" and ref.entity_id in [
-            r.entity_id for r in references
-        ]:
-            # do not create relations, if there already is a mention
-            continue
-
-        references.append(ref)
+    references.update(extract_mentions(body))
+    references.update(await get_references_from_entity(entity))
 
     #
     # Create the activity
@@ -108,6 +108,13 @@ async def create_activity(
 
     if not activity_id:
         activity_id = create_uuid()
+
+    #
+    # Add files
+    #
+
+    if files is not None:
+        data["files"] = await process_activity_files(project_name, files)
 
     query = f"""
         INSERT INTO project_{project_name}.activities
@@ -118,6 +125,20 @@ async def create_activity(
 
     async with Postgres.acquire() as conn, conn.transaction():
         await conn.execute(query, activity_id, activity_type, body, data, timestamp)
+
+        if files is not None:
+            await conn.execute(
+                f"""
+                UPDATE project_{project_name}.files
+                SET
+                    activity_id = $1,
+                    updated_at = NOW()
+                WHERE id = ANY($2)
+                """,
+                activity_id,
+                files,
+            )
+
         st_ref = await conn.prepare(
             f"""
             INSERT INTO project_{project_name}.activity_references

@@ -14,11 +14,14 @@ from ayon_server.exceptions import (
 )
 from ayon_server.lib.postgres import Postgres
 
+from .utils import process_activity_files
+
 
 async def update_activity(
     project_name: str,
     activity_id: str,
     body: str,
+    files: list[str] | None = None,
     user_name: str | None = None,
     extra_references: list[ActivityReferenceModel] | None = None,
     data: dict[str, Any] | None = None,
@@ -46,7 +49,7 @@ async def update_activity(
 
     if user_name and (user_name != activity_data["author"]):
         logging.warning(
-            f"User {user_name} update activity {activity_id}"
+            f"User {user_name} updated activity {activity_id}"
             f" owned by {activity_data['author']}"
         )
         # raise ForbiddenException("You can only update your own activities")
@@ -59,7 +62,7 @@ async def update_activity(
     if activity_type == "comment" and is_body_with_checklist(body):
         activity_data["hasChecklist"] = True
 
-    references = []
+    references: set[ActivityReferenceModel] = set(extra_references or [])
     async for row in Postgres.iterate(
         f"""
         SELECT id, entity_type, entity_id, entity_name, reference_type, data
@@ -68,7 +71,7 @@ async def update_activity(
         """,
         activity_id,
     ):
-        references.append(
+        references.add(
             ActivityReferenceModel(
                 id=row["id"],
                 reference_type=row["reference_type"],
@@ -87,7 +90,16 @@ async def update_activity(
         if ref.reference_type == "mention":
             if ref not in mentions:
                 refs_to_delete.append(ref.id)
-    references.extend(mentions)
+    references.update(mentions)
+
+    # Update files
+
+    if files is not None:
+        files_data = await process_activity_files(project_name, files)
+        if files_data:
+            activity_data["files"] = files_data
+        else:
+            activity_data.pop("files", None)
 
     # Update the activity
 
@@ -99,6 +111,34 @@ async def update_activity(
 
     async with Postgres.acquire() as conn, conn.transaction():
         await conn.execute(query, body, activity_data, activity_id)
+
+        if files is not None:
+            await conn.execute(
+                f"""
+                UPDATE project_{project_name}.files
+                SET
+                    activity_id = NULL,
+                    updated_at = now()
+                WHERE
+                    activity_id = $1
+                AND NOT (id = ANY($2))
+                """,
+                activity_id,
+                files,
+            )
+
+            await conn.execute(
+                f"""
+                UPDATE project_{project_name}.files
+                SET
+                    activity_id = $1,
+                    updated_at = now()
+                WHERE
+                    id = ANY($2)
+                """,
+                activity_id,
+                files,
+            )
 
         if refs_to_delete:
             await conn.execute(
