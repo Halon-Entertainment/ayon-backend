@@ -64,7 +64,7 @@ class AyonConfig(BaseModel):
         description="Minimum password length.",
     )
 
-    auth_pass_complex: str = Field(
+    auth_pass_complex: bool = Field(
         default=True,
         description="Enforce using a complex password.",
     )
@@ -153,6 +153,11 @@ class AyonConfig(BaseModel):
     audit_trail: bool = Field(
         default=True,
         description="Enable audit trail",
+    )
+
+    openapi_include_addon_endpoints: bool = Field(
+        default=False,
+        description="Include addon endpoints in the OpenAPI schema",
     )
 
     log_retention_days: int = Field(
