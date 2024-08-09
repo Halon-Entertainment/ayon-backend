@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from fastapi import BackgroundTasks, Header
 
@@ -8,6 +9,7 @@ from ayon_server.activities import (
     delete_activity,
     update_activity,
 )
+from ayon_server.activities.watchers.set_watchers import ensure_watching
 from ayon_server.api.dependencies import (
     CurrentUser,
     PathEntityID,
@@ -29,6 +31,11 @@ class ProjectActivityPostModel(OPModel):
     body: str = Field("", example="This is a comment")
     files: list[str] | None = Field(None, example=["file1", "file2"])
     timestamp: datetime | None = Field(None, example="2021-01-01T00:00:00Z")
+    data: dict[str, Any] | None = Field(
+        None,
+        example={"key": "value"},
+        description="Additional data",
+    )
 
 
 class CreateActivityResponseModel(OPModel):
@@ -42,6 +49,7 @@ async def post_project_activity(
     entity_id: PathEntityID,
     user: CurrentUser,
     activity: ProjectActivityPostModel,
+    background_tasks: BackgroundTasks,
     x_sender: str | None = Header(default=None),
 ) -> CreateActivityResponseModel:
     """Create an activity.
@@ -52,7 +60,7 @@ async def post_project_activity(
     """
 
     if not user.is_service:
-        if activity.activity_type != "comment":
+        if activity.activity_type not in ["comment"]:
             raise BadRequestException("Humans can only create comments")
 
     entity_class = get_entity_class(entity_type)
@@ -69,7 +77,13 @@ async def post_project_activity(
         user_name=user.name,
         timestamp=activity.timestamp,
         sender=x_sender,
+        data=activity.data,
     )
+
+    if not user.is_service:
+        await ensure_watching(entity, user)
+
+    background_tasks.add_task(delete_unused_files, project_name)
 
     return CreateActivityResponseModel(id=id)
 
@@ -79,6 +93,7 @@ async def delete_project_activity(
     project_name: ProjectName,
     activity_id: str,
     user: CurrentUser,
+    background_tasks: BackgroundTasks,
     x_sender: str | None = Header(default=None),
 ) -> EmptyResponse:
     """Delete an activity.
@@ -98,6 +113,8 @@ async def delete_project_activity(
         user_name=user_name,
         sender=x_sender,
     )
+
+    background_tasks.add_task(delete_unused_files, project_name)
 
     return EmptyResponse()
 
