@@ -6,6 +6,8 @@ from ayon_server.utils import create_uuid
 
 ActivityType = Literal[
     "comment",
+    "watch",
+    "reviewable",
     "status.change",
     "assignee.add",
     "assignee.remove",
@@ -17,6 +19,7 @@ ActivityReferenceType = Literal[
     "mention",
     "author",
     "relation",
+    "watching",
 ]
 
 ReferencedEntityType = Literal[
