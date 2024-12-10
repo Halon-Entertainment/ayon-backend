@@ -10,7 +10,7 @@ from ayon_server.api.dependencies import CurrentUser, ProjectName, SiteID
 from ayon_server.api.responses import EmptyResponse
 from ayon_server.config import ayonconfig
 from ayon_server.entities import ProjectEntity
-from ayon_server.events import dispatch_event
+from ayon_server.events import EventStream
 from ayon_server.exceptions import (
     BadRequestException,
     ForbiddenException,
@@ -184,8 +184,11 @@ async def set_addon_project_settings(
     explicit_unpins = payload.pop("__unpinned_fields__", None)
 
     if not site_id:
-        if not user.is_manager:
-            raise ForbiddenException
+        user.check_permissions(
+            "project.settings",
+            project_name=project_name,
+            write=True,
+        )
 
         original = await addon.get_project_settings(project_name, variant=variant)
         existing = await addon.get_project_overrides(project_name, variant=variant)
@@ -235,7 +238,7 @@ async def set_addon_project_settings(
                 variant=variant,
             )
 
-        await dispatch_event(
+        await EventStream.dispatch(
             topic="settings.changed",
             description=f"{addon_name} {version} {variant} project overrides changed",
             summary={
@@ -318,8 +321,11 @@ async def delete_addon_project_overrides(
     _ = await ProjectEntity.load(project_name)
 
     if not site_id:
-        if not user.is_manager:
-            raise ForbiddenException
+        user.check_permissions(
+            "project.settings",
+            project_name=project_name,
+            write=True,
+        )
 
         old_settings = await addon.get_project_settings(project_name, variant=variant)
         new_settings = await addon.get_studio_settings(variant=variant)
@@ -357,7 +363,7 @@ async def delete_addon_project_overrides(
                 "newValue": {},
             }
 
-        await dispatch_event(
+        await EventStream.dispatch(
             topic="settings.changed",
             description=f"{addon_name} {version} {variant} project overrides removed",
             summary={
@@ -465,8 +471,11 @@ async def modify_project_overrides(
 
         return EmptyResponse()
 
-    if not user.is_manager:
-        raise ForbiddenException
+    user.check_permissions(
+        "project.settings",
+        project_name=project_name,
+        write=True,
+    )
 
     old_settings = await addon.get_project_settings(project_name, variant=variant)
     if ayonconfig.audit_trail:
@@ -515,7 +524,7 @@ async def modify_project_overrides(
             "newValue": new_overrides,
         }
 
-    await dispatch_event(
+    await EventStream.dispatch(
         topic="settings.changed",
         description=f"{addon_name} {version} {variant} project overrides changed",
         summary={
