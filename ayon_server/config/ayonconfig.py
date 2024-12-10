@@ -1,6 +1,7 @@
 """Server configuration object"""
 
 import os
+from typing import Literal
 
 from aiocache import caches
 from pydantic import BaseModel, Field
@@ -18,6 +19,15 @@ caches.set_config(
 class AyonConfig(BaseModel):
     """Server configuration"""
 
+    # We only need to handle AYON_RUN_MAINTENANCE here,
+    # as RUN_SERVER and RUN_SETUP are handled outside the server.
+    run_maintenance: bool = Field(
+        default=True,
+        description="Run maintenance procedure in the background "
+        "in the main server container. "
+        "Set to false when scaling the server to multiple instances.",
+    )
+
     http_listen_address: str = Field(
         default="0.0.0.0",
         description="An address the API server listens on",
@@ -31,12 +41,6 @@ class AyonConfig(BaseModel):
     api_modules_dir: str = Field(
         default="api",
         description="Path to the directory containing the API modules.",
-    )
-
-    project_data_dir: str = Field(
-        default="/storage/server/projects",
-        description="Path to the directory containing the project files."
-        " such as comment attachments, thumbnails, etc.",
     )
 
     avatar_dir: str = Field(
@@ -104,7 +108,7 @@ class AyonConfig(BaseModel):
     )
 
     session_ttl: int = Field(
-        default=24 * 3600,
+        default=72 * 3600,
         description="Session lifetime in seconds",
     )
 
@@ -199,6 +203,8 @@ class AyonConfig(BaseModel):
         description="Path to the log file",
     )
 
+    # Metrics settings
+
     metrics_api_key: str | None = Field(
         default=None,
         description="API key allowing access to the system metrics endpoint",
@@ -214,12 +220,37 @@ class AyonConfig(BaseModel):
         description="Send saturated metrics to Ynput Cloud",
     )
 
+    # Email settings
+
     email_from: str = Field("noreply@ynput.cloud", description="Email sender address")
     email_smtp_host: str | None = Field(None, description="SMTP server hostname")
     email_smtp_port: int | None = Field(None, description="SMTP server port")
     email_smtp_tls: bool = Field(False, description="Use SSL for SMTP connection")
     email_smtp_user: str | None = Field(None, description="SMTP server username")
     email_smtp_pass: str | None = Field(None, description="SMTP server password")
+
+    # Project storage
+
+    default_project_storage_type: Literal["local", "s3"] = Field(
+        "local",
+        description="Default project storage type",
+    )
+
+    default_project_storage_root: str = Field(
+        default="/storage/server/projects",
+        description="Path to the directory containing the project files."
+        " such as comment attachments, thumbnails, etc.",
+    )
+
+    default_project_storage_bucket_name: str | None = Field(
+        default=None,
+        description="Default project storage bucket name (S3)",
+    )
+
+    default_project_storage_cdn_resolver: str | None = Field(
+        default=None,
+        description="Project files CDN resolver URL",
+    )
 
 
 #
